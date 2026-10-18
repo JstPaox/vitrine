@@ -1,5 +1,7 @@
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 // Lossless source configuration keys (read from NSUserDefaults).
 #define SGKeyLosslessProviderURL   @"spotifyglass.lossless.providerURL"
 #define SGKeyLosslessProviderToken @"spotifyglass.lossless.providerToken"
@@ -15,3 +17,5 @@ BOOL SGLosslessProviderIsDownloading(NSString *uri);
 
 // Cancel any in-flight download for `uri`.
 void SGLosslessProviderCancel(NSString *uri);
+
+NS_ASSUME_NONNULL_END

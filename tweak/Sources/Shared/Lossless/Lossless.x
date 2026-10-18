@@ -8,6 +8,7 @@
 #import "SGLossless.h"
 #import "SGLosslessStore.h"
 #import "LosslessQuality.h"
+#import "SGLosslessProvider.h"
 
 static const int kTries = 3;            // failed anchors in a row before waiting for the next change of source
 static const double kRetrySeconds = 2;
@@ -23,6 +24,7 @@ static const double kRetrySeconds = 2;
     int _failures;
     uint64_t _gaveUpEpoch;
     double _retryAt;
+    NSString *_downloadingURI;
 }
 
 - (void)playerStateDidChange:(SPTPlayerState *)state {
@@ -60,6 +62,38 @@ static const double kRetrySeconds = 2;
         _nextHas = nextURI && SGLosslessStoreHas(nextURI, next.trackTitle ?: @"");
     }
     SGLosslessLowerQuality(_nextHas);
+
+    if (!_path && !_busy && !SGLosslessPlaying() && ![_downloadingURI isEqualToString:track]) {
+        _downloadingURI = track;
+        _busy = YES;
+        NSString *title = state.track.trackTitle ?: @"";
+        double duration = state.duration;
+        SGLosslessProviderDownloadForTrack(track, title, duration, ^(NSString *_Nullable path, NSString *_Nullable error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                _busy = NO;
+                if ([track isEqualToString:_track]) {
+                    _downloadingURI = nil;
+                    if (path) {
+                        _path = path;
+                        _failures = 0;
+                        SGLog(@"lossless: downloaded %@ for %@", path.lastPathComponent, track);
+                        [self tick];
+                    } else {
+                        _failures++;
+                        if (_failures >= kTries) {
+                            _failures = 0;
+                            _gaveUpEpoch = SGPlayerSourceEpoch();
+                            SGLog(@"lossless: download gave up on %@: %@", track, error ?: @"unknown");
+                        } else {
+                            _retryAt = CFAbsoluteTimeGetCurrent() + kRetrySeconds;
+                            SGLog(@"lossless: download failed on %@: %@", track, error ?: @"unknown");
+                        }
+                    }
+                }
+            });
+        });
+        return;
+    }
 
     if (!_path || _busy || SGLosslessPlaying()) return;
     if (!state.isPlaying || state.isPaused || fabs(state.playbackSpeed - 1) > 0.001 || SGSingOn()) return;

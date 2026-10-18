@@ -18,6 +18,7 @@
 #import "Native/Player/NowPlaying.h"
 #import "Shared/LiveActivity/LiveActivity.h"
 #import "Shared/Lossless/SGLossless.h"
+#import "Shared/Lossless/SGLosslessProvider.h"
 #import "Redesigned/Lyrics/LyricsText.h"
 #import "Redesigned/Lyrics/LyricsLook.h"
 #import "Redesigned/Navbar/Navbar.h"
@@ -163,6 +164,46 @@ UIViewController *SGPlayerSettingsPage(void) {
 
     [sections addObject:SGNotedSection(@"Lossless", @[
         SGOptionRow(@"Lossless files", @"Your own FLACs in place of Spotify's stream", SGKeyLossless),
+        SGActionRow(@"Lossless source URL", @"Base URL of the lossless source (HTTP JSON contract)", ^{
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Lossless source URL"
+                message:@"Enter the base URL of the lossless source, e.g. https://spotiflac.example.com. Leave empty to use only local Files › Spotify › Lossless."
+                preferredStyle:UIAlertControllerStyleAlert];
+            [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+                field.placeholder = @"https://spotiflac.example.com";
+                field.text = [[NSUserDefaults standardUserDefaults] stringForKey:SGKeyLosslessProviderURL] ?: @"";
+                field.keyboardType = UIKeyboardTypeURL;
+                field.autocapitalizationType = UITextAutocapitalizationTypeNone;
+                field.autocorrectionType = UITextAutocorrectionTypeNo;
+                field.spellCheckingType = UITextSpellCheckingTypeNo;
+            }];
+            [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+            [alert addAction:[UIAlertAction actionWithTitle:@"Save" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+                NSString *url = alert.textFields.firstObject.text ?: @"";
+                [[NSUserDefaults standardUserDefaults] setValue:url.length ? url : nil forKey:SGKeyLosslessProviderURL];
+                [[NSUserDefaults standardUserDefaults] synchronize];
+            }]];
+            [SGTopController() presentViewController:alert animated:YES completion:nil];
+        }),
+        SGActionRow(@"Lossless source token", @"Bearer token for the lossless source, if any", ^{
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Lossless source token"
+                message:@"Bearer token sent as Authorization: Bearer <token> on every request to the lossless source."
+                preferredStyle:UIAlertControllerStyleAlert];
+            [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+                field.placeholder = @"token";
+                field.text = [[NSUserDefaults standardUserDefaults] stringForKey:SGKeyLosslessProviderToken] ?: @"";
+                field.secureTextEntry = YES;
+                field.autocapitalizationType = UITextAutocapitalizationTypeNone;
+                field.autocorrectionType = UITextAutocorrectionTypeNo;
+                field.spellCheckingType = UITextSpellCheckingTypeNo;
+            }];
+            [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+            [alert addAction:[UIAlertAction actionWithTitle:@"Save" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+                NSString *token = alert.textFields.firstObject.text ?: @"";
+                [[NSUserDefaults standardUserDefaults] setValue:token.length ? token : nil forKey:SGKeyLosslessProviderToken];
+                [[NSUserDefaults standardUserDefaults] synchronize];
+            }]];
+            [SGTopController() presentViewController:alert animated:YES completion:nil];
+        }),
     ], @"Put FLAC or ALAC files in Files › Spotify › Lossless. A file plays when its title and length match the song "
        @"and its sound matches what Spotify plays, from about 4 s after the song starts or you seek. Spotify still "
        @"streams its own copy, at its lowest quality while the next song has a file. Karaoke and speeds other than "

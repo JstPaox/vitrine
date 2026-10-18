@@ -4,6 +4,8 @@
 
 #define kMaxDownloadBytes (1024LL * 1024LL * 1024LL)  // 1 GiB ceiling
 
+typedef void (^SGLosslessStringResultBlock)(NSString *_Nullable, NSString *_Nullable);
+
 static dispatch_queue_t sg_queue;
 static NSMutableDictionary<NSString *, NSURLSessionDataTask *> *sg_tasks;
 
@@ -25,14 +27,11 @@ static NSString *providerToken(void) {
 
 // Encode a query value for the URL.
 static NSString *encode(NSString *value) {
-    return CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(NULL,
-        (CFStringRef)value, NULL, CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding),
-        kCFStringEncodingUTF8));
+    return [value stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLQueryAllowedCharacterSet] ?: @"";
 }
 
 // Track: try the manifest's streamURL first, else /stream/{id}.
-static void streamURLForTrack(NSDictionary *track, NSString *quality,
-    void (^)(NSString *_Nullable url, NSString *_Nullable error)) done) {
+static void streamURLForTrack(NSDictionary *track, NSString *quality, SGLosslessStringResultBlock done) {
     NSString *url = track[@"streamURL"];
     if (url && url.length) { done(url, nil); return; }
     NSString *id = track[@"id"] ?: track[@"trackId"];
@@ -66,8 +65,7 @@ static void streamURLForTrack(NSDictionary *track, NSString *quality,
 }
 
 // Download `url` into Documents/Lossless, remember it by URI, then report the path.
-static void downloadToCache(NSString *urlString, NSString *uri, NSString *title, double duration,
-    void (^)(NSString *_Nullable path, NSString *_Nullable error)) done) {
+static void downloadToCache(NSString *urlString, NSString *uri, NSString *title, double duration, SGLosslessStringResultBlock done) {
     NSURL *downloadURL = [NSURL URLWithString:urlString];
     if (!downloadURL) { done(nil, @"bad download URL"); return; }
     NSString *ext = downloadURL.pathExtension;

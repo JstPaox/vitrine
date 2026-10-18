@@ -106,7 +106,7 @@ static void downloadToCache(NSString *urlString, NSString *uri, NSString *title,
 }
 
 BOOL SGLosslessProviderDownloadForTrack(NSString *uri, NSString *title, double duration,
-    void (^_Nullable)(NSString *_Nullable path, NSString *_Nullable error)) callback) {
+    SGLosslessProviderCallback _Nullable callback) {
     if (!callback) return NO;
     ensureInit();
     NSString *base = providerURL();

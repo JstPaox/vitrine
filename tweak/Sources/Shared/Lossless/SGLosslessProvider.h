@@ -2,6 +2,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+typedef void (^SGLosslessProviderCallback)(NSString *_Nullable path, NSString *_Nullable error);
+
 // Lossless source configuration keys (read from NSUserDefaults).
 #define SGKeyLosslessProviderURL   @"spotifyglass.lossless.providerURL"
 #define SGKeyLosslessProviderToken @"spotifyglass.lossless.providerToken"
@@ -10,7 +12,7 @@ NS_ASSUME_NONNULL_BEGIN
 // Documents/Lossless and reports the local path on the main thread. `duration` may be -1 when
 // unknown. Returns YES while a request is in flight; a later call for the same URI replaces it.
 BOOL SGLosslessProviderDownloadForTrack(NSString *uri, NSString *title, double duration,
-    void (^ _Nullable)(NSString *_Nullable path, NSString *_Nullable error)) callback;
+    SGLosslessProviderCallback _Nullable callback);
 
 // Whether a download for `uri` is in flight.
 BOOL SGLosslessProviderIsDownloading(NSString *uri);
